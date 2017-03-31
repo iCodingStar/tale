@@ -60,7 +60,7 @@ public class ContentsServiceImpl implements ContentsService {
             throw new TipException("文章内容不能为空");
         if (contents.getTitle().length() > 200)
             throw new TipException("文章标题过长");
-        if (contents.getContent().length() > 10000)
+        if (contents.getContent().length() > 50000)
             throw new TipException("文章内容过长");
         if (null == contents.getAuthor_id())
             throw new TipException("请登录后发布文章");
