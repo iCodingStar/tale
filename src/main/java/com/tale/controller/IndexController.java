@@ -50,7 +50,7 @@ public class IndexController extends BaseController {
     private SiteService siteService;
 
     /**
-     * 首页
+     * 首页，默认首页显示12条文章记录
      *
      * @return
      */
@@ -97,9 +97,11 @@ public class IndexController extends BaseController {
      */
     @Route(value = "page/:p", method = HttpMethod.GET)
     public String index(Request request, @PathParam int p, @QueryParam(value = "limit", defaultValue = "12") int limit) {
+        // 1.如果页号不合法则重置为 1
         p = p < 0 || p > TaleConst.MAX_PAGE ? 1 : p;
         Take take = new Take(Contents.class).eq("type", Types.ARTICLE).eq("status", Types.PUBLISH).page(p, limit, "created desc");
         Paginator<Contents> articles = contentsService.getArticles(take);
+        // 2.回填查询到的当前页数据
         request.attribute("articles", articles);
         if (p > 1) {
             this.title(request, "第" + p + "页");
@@ -114,18 +116,23 @@ public class IndexController extends BaseController {
      */
     @Route(value = "article/:cid", method = HttpMethod.GET)
     public String post(Request request, @PathParam String cid) {
+        // 1. 根据文章id查询文章信息
         Contents contents = contentsService.getContents(cid);
+        // 2. 如果文章未查询到返回404
         if (null == contents) {
             return this.render_404();
         }
+        // 3. 向页面发送数据
         request.attribute("article", contents);
         request.attribute("is_post", true);
         if (contents.getAllow_comment()) {
             int cp = request.queryInt("cp", 1);
             request.attribute("cp", cp);
         }
+        // 4. 从缓存中获取文章的点击量
         Integer hits = cache.hget("article", "hits");
         hits = null == hits ? 1 : hits + 1;
+        // 5. 如果文章的点击量超过设置的最低点击量，则持久化到数据库，否则只更新缓存。
         if (hits >= TaleConst.HIT_EXCEED) {
             Contents temp = new Contents();
             temp.setCid(contents.getCid());
